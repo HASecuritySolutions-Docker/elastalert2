@@ -80,32 +80,110 @@ elastalert2 container image on `Docker Hub <https://hub.docker.com/r/jertel/elas
 
 Be aware that the ``latest`` tag of the image represents the latest commit into
 the master branch. If you prefer to upgrade more slowly you will need utilize a
-versioned tag, such as ``2.2.3`` instead, or ``2`` if you are comfortable with
+versioned tag, such as ``2.7.0`` instead, or ``2`` if you are comfortable with
 always using the latest released version of ElastAlert 2.
 
 A properly configured config.yaml file must be mounted into the container during
 startup of the container. Use the `example file
 <https://github.com/jertel/elastalert2/blob/master/examples/config.yaml.example>`_
-provided as a template, and once saved locally to a file such as
-``/tmp/elastalert.yaml``, run the container as follows:
+as a template.
 
-via Docker Hub (hub.docker.com)
+The following example assumes Elasticsearch container has already been started with Docker. 
+This example also assumes both the Elasticsearch and ElastAlert2 containers are using the default Docker network: ``es_default``
 
-.. code-block::
-
-    docker run -d -v /tmp/elastalert.yaml:/opt/elastalert/config.yaml jertel/elastalert2
-
-via GitHub Container Registry (ghcr.io)
+Create a rule directory and rules file in addition to elastalert.yaml, and then mount both into the ElastAlert 2 container:
 
 .. code-block::
 
-    docker run -d -v /tmp/elastalert.yaml:/opt/elastalert/config.yaml ghcr.io/jertel/elastalert2/elastalert2
+    elastalert.yaml
+    rules/
+      a.yaml
 
-To build the image locally run the following command:
+elastalert.yaml
+
+.. code-block::
+
+    rules_folder: /opt/elastalert/rules
+
+    run_every:
+      seconds: 10
+
+    buffer_time:
+      minutes: 15
+
+    es_host: elasticsearch
+    es_port: 9200
+
+    writeback_index: elastalert_status
+
+    alert_time_limit:
+      days: 2
+
+a.yaml
+
+.. code-block::
+
+    name: "a"
+    type: "frequency"
+    index: "mariadblog-*"
+    is_enabled: true
+    num_events: 2
+    realert:
+      minutes: 5
+    terms_size: 50
+    timeframe:
+      minutes: 5
+    timestamp_field: "@timestamp"
+    timestamp_type: "iso"
+    use_strftime_index: false
+    alert_subject: "Test {} 123 aa☃"
+    alert_subject_args:
+      - "message"
+      - "@log_name"
+    alert_text: "Test {}  123 bb☃"
+    alert_text_args:
+      - "message"
+    filter:
+      - query:
+          query_string:
+            query: "@timestamp:*"
+    alert:
+      - "slack"
+    slack_webhook_url: 'https://hooks.slack.com/services/xxxxxxxxx'
+    slack_channel_override: "#abc"
+    slack_emoji_override: ":kissing_cat:"
+    slack_msg_color: "warning"
+    slack_parse_override: "none"
+    slack_username_override: "elastalert"
+
+Starting the container via Docker Hub (hub.docker.com)
+
+.. code-block::
+
+    docker run --net=es_default -d --name elastalert --restart=always \
+    -v $(pwd)/elastalert.yaml:/opt/elastalert/config.yaml \
+    -v $(pwd)/rules:/opt/elastalert/rules \
+    jertel/elastalert2 --verbose
+
+    docker logs -f elastalert
+
+Starting the container via GitHub Container Registry (ghcr.io)
+
+.. code-block::
+
+    docker run --net=es_default -d --name elastalert --restart=always \
+    -v $(pwd)/elastalert.yaml:/opt/elastalert/config.yaml \
+    -v $(pwd)/rules:/opt/elastalert/rules \
+    ghcr.io/jertel/elastalert2/elastalert2 --verbose
+
+    docker logs -f elastalert
+
+For developers, the below command can be used to build the image locally:
 
 .. code-block::
 
     docker build . -t elastalert2
+
 
 .. _kubernetes-instructions:
 
@@ -126,13 +204,13 @@ As a Python package
 Requirements
 ------------
 
-- Elasticsearch
+- Elasticsearch 7.x or 8.x, or OpenSearch 1.x or 2.x
 - ISO8601 or Unix timestamped data
-- Python 3.9
+- Python 3.10. Require OpenSSL 1.1.1 or newer.
 - pip
-- Packages on Ubuntu 21.x: build-essential python3-pip python3.9 python3.9-dev libffi-dev libssl-dev
+- Packages on Ubuntu 21.x: build-essential python3-pip python3.10 python3.10-dev libffi-dev libssl-dev
 
-If you want to install python 3.9 on CentOS, please install python 3.9 from the source code after installing 'Development Tools'.
+If you want to install python 3.10 on CentOS, please install python 3.10 from the source code after installing 'Development Tools'.
 
 Downloading and Configuring
 ---------------------------

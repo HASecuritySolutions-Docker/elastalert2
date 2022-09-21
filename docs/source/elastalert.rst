@@ -66,7 +66,7 @@ Additional rule types and alerts can be easily imported or written. (See :ref:`W
 
 In addition to this basic usage, there are many other features that make alerts more useful:
 
-- Alerts link to Kibana dashboards
+- Alerts link to Kibana Discover searches
 - Aggregate counts for arbitrary fields
 - Combine alerts into periodic reports
 - Separate alerts by using a unique key field
@@ -210,6 +210,18 @@ rule will no longer be run until either ElastAlert 2 restarts or the rule file h
 only an uncaught exception will send a notification email. The from address, SMTP host, and reply-to header can be set
 using ``from_addr``, ``smtp_host``, and ``email_reply_to`` options, respectively. By default, no emails will be sent.
 
+single address example::
+
+    notify_email: "one@domain"
+
+or
+
+multiple address example::
+
+    notify_email:
+        - "one@domain"
+        - "two@domain"
+
 ``from_addr``: The address to use as the from header in email notifications.
 This value will be used for email alerts as well, unless overwritten in the rule config. The default value
 is "ElastAlert".
@@ -229,7 +241,7 @@ The environment variable ``AWS_DEFAULT_PROFILE`` will override this field.
 The default value is ``False``. Elasticsearch 2.0 - 2.3 does not support dots in field names.
 
 ``string_multi_field_name``: If set, the suffix to use for the subfield for string multi-fields in Elasticsearch.
-The default value is ``.raw`` for Elasticsearch 2 and ``.keyword`` for Elasticsearch 5.
+The default value is ``.keyword``.
 
 ``add_metadata_alert``: If set, alerts will include metadata described in rules (``category``, ``description``, ``owner`` and ``priority``); set to ``True`` or ``False``. The default is ``False``.
 

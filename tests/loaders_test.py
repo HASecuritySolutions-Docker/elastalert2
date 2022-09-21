@@ -11,8 +11,12 @@ import elastalert.alerts
 import elastalert.ruletypes
 from elastalert.alerters.email import EmailAlerter
 from elastalert.config import load_conf
-from elastalert.loaders import FileRulesLoader
-from elastalert.loaders import RulesLoader
+from elastalert.loaders import (
+    FileRulesLoader,
+    RulesLoader,
+    load_rule_schema,
+)
+
 from elastalert.util import EAException
 
 
@@ -39,7 +43,6 @@ test_rule = {'es_host': 'test_host',
              'filter': [{'term': {'key': 'value'}}],
              'alert': 'email',
              'use_count_query': True,
-             'doc_type': 'blsh',
              'email': 'test@test.test',
              'aggregation': {'hours': 2},
              'include': ['comparekey', '@timestamp']}
@@ -79,8 +82,8 @@ def test_import_rules():
 def test_import_import():
     rules_loader = FileRulesLoader(test_config)
     import_rule = copy.deepcopy(test_rule)
-    del(import_rule['es_host'])
-    del(import_rule['es_port'])
+    del import_rule['es_host']
+    del import_rule['es_port']
     import_rule['import'] = 'importme.ymlt'
     import_me = {
         'es_host': 'imported_host',
@@ -106,8 +109,8 @@ def test_import_import():
 def test_import_absolute_import():
     rules_loader = FileRulesLoader(test_config)
     import_rule = copy.deepcopy(test_rule)
-    del(import_rule['es_host'])
-    del(import_rule['es_port'])
+    del import_rule['es_host']
+    del import_rule['es_port']
     import_rule['import'] = '/importme.ymlt'
     import_me = {
         'es_host': 'imported_host',
@@ -132,8 +135,8 @@ def test_import_filter():
 
     rules_loader = FileRulesLoader(test_config)
     import_rule = copy.deepcopy(test_rule)
-    del(import_rule['es_host'])
-    del(import_rule['es_port'])
+    del import_rule['es_host']
+    del import_rule['es_port']
     import_rule['import'] = 'importme.ymlt'
     import_me = {
         'es_host': 'imported_host',
@@ -170,6 +173,32 @@ def test_load_inline_alert_rule():
         assert isinstance(test_rule_copy['alert'][1], EmailAlerter)
         assert 'foo@bar.baz' in test_rule_copy['alert'][0].rule['email']
         assert 'baz@foo.bar' in test_rule_copy['alert'][1].rule['email']
+
+
+def test_load_inline_alert_rule_with_jinja():
+    rules_loader = FileRulesLoader(test_config)
+    test_rule_copy = copy.deepcopy(test_rule)
+    test_rule_copy['alert'] = [
+        {
+            'email': {
+                'alert_text_type': 'alert_text_jinja',
+                'alert_text': '{{ myjinjavar }}'
+            }
+        },
+        {
+            'email': {
+                'alert_text': 'hello'
+            }
+        }
+    ]
+    test_config_copy = copy.deepcopy(test_config)
+    with mock.patch.object(rules_loader, 'get_yaml') as mock_open:
+        mock_open.side_effect = [test_config_copy, test_rule_copy]
+        rules_loader.load_modules(test_rule_copy)
+        assert isinstance(test_rule_copy['alert'][0], EmailAlerter)
+        assert isinstance(test_rule_copy['alert'][1], EmailAlerter)
+        assert 'jinja_template' in test_rule_copy['alert'][0].rule
+        assert 'jinja_template' not in test_rule_copy['alert'][1].rule
 
 
 def test_file_rules_loader_get_names_recursive():
@@ -413,36 +442,6 @@ def test_name_inference():
     assert test_rule_copy['name'] == 'msmerc woz ere'
 
 
-def test_raises_on_bad_generate_kibana_filters():
-    test_rule['generate_kibana_link'] = True
-    bad_filters = [[{'not': {'terms': {'blah': 'blah'}}}],
-                   [{'terms': {'blah': 'blah'}}],
-                   [{'query': {'not_querystring': 'this:that'}}],
-                   [{'query': {'wildcard': 'this*that'}}],
-                   [{'blah': 'blah'}]]
-    good_filters = [[{'term': {'field': 'value'}}],
-                    [{'not': {'term': {'this': 'that'}}}],
-                    [{'not': {'query': {'query_string': {'query': 'this:that'}}}}],
-                    [{'query': {'query_string': {'query': 'this:that'}}}],
-                    [{'range': {'blah': {'from': 'a', 'to': 'b'}}}],
-                    [{'not': {'range': {'blah': {'from': 'a', 'to': 'b'}}}}]]
-
-    # Test that all the good filters work, but fail with a bad filter added
-    for good in good_filters:
-        test_config_copy = copy.deepcopy(test_config)
-        rules_loader = FileRulesLoader(test_config_copy)
-
-        test_rule_copy = copy.deepcopy(test_rule)
-        test_rule_copy['filter'] = good
-        with mock.patch.object(rules_loader, 'get_yaml') as mock_open:
-            mock_open.return_value = test_rule_copy
-            rules_loader.load_configuration('blah', test_config)
-            for bad in bad_filters:
-                test_rule_copy['filter'] = good + bad
-                with pytest.raises(EAException):
-                    rules_loader.load_configuration('blah', test_config)
-
-
 def test_kibana_discover_from_timedelta():
     test_config_copy = copy.deepcopy(test_config)
     rules_loader = FileRulesLoader(test_config_copy)
@@ -627,3 +626,8 @@ def test_load_yaml_imports_modified():
             'rule_file': rule_path,
         }
         assert len(rules_loader.import_rules) == 0
+
+
+def test_load_rule_schema():
+    validator = load_rule_schema()
+    validator.check_schema(validator.schema)

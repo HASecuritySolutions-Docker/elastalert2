@@ -293,8 +293,6 @@ class RulesLoader(object):
         :param filename: Name of the rule
         :param args: Arguments
         """
-        self.adjust_deprecated_values(rule)
-
         try:
             self.rule_schema.validate(rule)
         except jsonschema.ValidationError as e:
@@ -323,10 +321,6 @@ class RulesLoader(object):
                 rule['bucket_interval_timedelta'] = datetime.timedelta(**rule['bucket_interval'])
             if 'exponential_realert' in rule:
                 rule['exponential_realert'] = datetime.timedelta(**rule['exponential_realert'])
-            if 'kibana4_start_timedelta' in rule:
-                rule['kibana4_start_timedelta'] = datetime.timedelta(**rule['kibana4_start_timedelta'])
-            if 'kibana4_end_timedelta' in rule:
-                rule['kibana4_end_timedelta'] = datetime.timedelta(**rule['kibana4_end_timedelta'])
             if 'kibana_discover_from_timedelta' in rule:
                 rule['kibana_discover_from_timedelta'] = datetime.timedelta(**rule['kibana_discover_from_timedelta'])
             if 'kibana_discover_to_timedelta' in rule:
@@ -429,24 +423,6 @@ class RulesLoader(object):
         include.append(rule['timestamp_field'])
         rule['include'] = list(set(include))
 
-        # Check that generate_kibana_url is compatible with the filters
-        if rule.get('generate_kibana_link'):
-            for es_filter in rule.get('filter'):
-                if es_filter:
-                    if 'not' in es_filter:
-                        es_filter = es_filter['not']
-                    if 'query' in es_filter:
-                        es_filter = es_filter['query']
-                    if list(es_filter.keys())[0] not in ('term', 'query_string', 'range'):
-                        raise EAException(
-                            'generate_kibana_link is incompatible with filters other than term, query_string and range.'
-                            'Consider creating a dashboard and using use_kibana_dashboard instead.')
-
-        # Check that doc_type is provided if use_count/terms_query
-        if rule.get('use_count_query') or rule.get('use_terms_query'):
-            if 'doc_type' not in rule:
-                raise EAException('doc_type must be specified.')
-
         # Check that query_key is set if use_terms_query
         if rule.get('use_terms_query'):
             if 'query_key' not in rule:
@@ -465,7 +441,9 @@ class RulesLoader(object):
         if rule.get('scan_entire_timeframe') and not rule.get('timeframe'):
             raise EAException('scan_entire_timeframe can only be used if there is a timeframe specified')
 
-        # Compile Jinja Template
+        self.load_jinja_template(rule)
+
+    def load_jinja_template(self, rule):
         if rule.get('alert_text_type') == 'alert_text_jinja':
             jinja_template_path = rule.get('jinja_template_path')
             if jinja_template_path:
@@ -520,6 +498,7 @@ class RulesLoader(object):
                 name, config = next(iter(list(alert.items())))
                 config_copy = copy.copy(rule)
                 config_copy.update(config)  # warning, this (intentionally) mutates the rule dict
+                self.load_jinja_template(config_copy)
                 return name, config_copy
             else:
                 raise EAException()
@@ -547,18 +526,6 @@ class RulesLoader(object):
             raise EAException('Error initiating alert %s: %s' % (rule['alert'], e)).with_traceback(sys.exc_info()[2])
 
         return alert_field
-
-    @staticmethod
-    def adjust_deprecated_values(rule):
-        # From rename of simple HTTP alerter
-        if rule.get('type') == 'simple':
-            rule['type'] = 'post'
-            if 'simple_proxy' in rule:
-                rule['http_post_proxy'] = rule['simple_proxy']
-            if 'simple_webhook_url' in rule:
-                rule['http_post_url'] = rule['simple_webhook_url']
-            elastalert_logger.warning(
-                '"simple" alerter has been renamed "post" and comptability may be removed in a future release.')
 
 
 class FileRulesLoader(RulesLoader):

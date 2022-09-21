@@ -219,8 +219,7 @@ rounded to a single timestamp.
 
 If you are using ``query_key`` (a single key, not multiple keys) you can use ``use_terms_query``.
 This will make ElastAlert 2 perform a terms aggregation to get the counts for each value of a certain
-field. Both ``use_terms_query`` and ``use_count_query`` also require ``doc_type`` to be set to the
-``_type`` of the documents. They may not be compatible with all rule types.
+field. May not be compatible with all rule types.
 
 Can I perform aggregations?
 ==========
@@ -278,10 +277,8 @@ threshold.
 Does it support Elastic Cloud's "Cloud ID"?
 ==========
 
-Not supported.
-
-In addition, there is a reason why we cannot handle it at present.
-ElastAlert 2 uses elasticsearch-py 7.0.0, because Elastic Cloud cloud_id support is from elasticsearch-py 7.0.2. 
+While Elastic Cloud is supported via the traditional URL connection method,
+connecting via Cloud ID is not currently supported.
 
 I need to go through an http (s) proxy to connect to Elasticsearch. Does ElastAlert 2 support it?
 ==========
@@ -398,3 +395,84 @@ See the following issues on the original yelp/elastalert for more information.
 
 https://github.com/Yelp/elastalert/issues/1867<br>
 https://github.com/Yelp/elastalert/issues/2704
+
+ElastAlert 2 doesn't have a listening port?
+==========
+
+ElastAlert 2 does not have a network API. There is no listening port, unless activating optional modules like Prometheus. You can monitor its activity by viewing the console output or Docker logs.
+
+I've set `ssl_show_warn` but it doesn't seem to work.
+==========
+
+Now supported as of ElastAlert 2.4.0.
+
+How to write a query filter for phrases containing spaces?
+==========
+
+To search for values containing spaces, or other special characters you will need to use escape characters. This is briefly mentioned at the bottom of the [Lucene Query Parser Syntax documentation](https://lucene.apache.org/core/2_9_4/queryparsersyntax.html) but does not go into extensive detail. Below are some examples to use in ElastAlert 2 rule filters.
+
+Example 1 - Escaping double quotes within double quotes. Useful for embedded single quotes and double quotes in your search phrase:
+
+```
+filter:
+ - query:
+     query_string:
+       query: "\"Women's Clothing\""
+```
+
+Example 2 - Avoiding escaping altogether by enclosing double quotes within single quotes:
+
+```
+filter:
+ - query:
+     query_string:
+       query: '"Rabbia Al"'
+```
+
+Does ElastAlert 2 support Elasticsearch 8?
+===========
+
+ElastAlert 2 supports Elasticsearch 8.
+
+To upgrade an existing ElastAlert 2 installation to Elasticsearch 8 the
+following manual steps are required (note the important WARNING below):
+
+* Shutdown ElastAlert 2.
+* Delete the old `elastalert*` indices. See [Elasticsearch
+  documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-delete-index.html)
+  for instructions on how to delete via the API, or use the Kibana Index Management interface.
+* Upgrade the Elastic cluster to Elasticsearch 8 following the [Elastic 8 upgrade instructions](https://elastic.co/guide/en/elastic-stack/8.0/upgrading-elastic-stack.html).
+* If NOT running ElastAlert 2 via Docker or Kubernetes, run
+  elastalert-create-index to create the new indices. This is not needed when
+  running via a container since the container always attempts to creates the
+  indices at startup, if they're not yet created.
+* Restart ElastAlert 2.
+
+WARNING: Failure to remove the old ElastAlert indices can result in a non-working Elasticsearch cluster. This is because the ElastAlert indices contain deprecated features and the Elasticsearch 8 upgrade logic is currently flawed and does not correctly handle this situation. The Elasticsearch GitHub repository contains [more information](https://github.com/elastic/elasticsearch/issues/84199) on this problem.
+
+Support multiple sns_topic_arn in Alert Amazon SNS(Simple Notification Service)?
+==========
+
+example
+
+```
+alert:
+ - sns:
+      sns_topic_arn: "aws-topic1"
+ - sns:
+      sns_topic_arn: "aws-topic2"
+```
+
+Support multiple telegram_room_id in Alert Telegram?
+==========
+
+example
+
+```
+alert:
+ - telegram:
+      telegram_room_id: "AAA"
+ - telegram:
+      telegram_room_id: "BBB"
+telegram_bot_token: "XXX"
+```

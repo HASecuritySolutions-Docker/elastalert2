@@ -448,7 +448,7 @@ class SpikeRule(RuleType):
         extending ref/cur value retrieval logic for spike aggregations
         """
         spike_check_type = self.rules.get('metric_agg_type')
-        if spike_check_type in [None, 'sum', 'value_count']:
+        if spike_check_type in [None, 'sum', 'value_count', 'cardinality', 'percentile']:
             # default count logic is appropriate in all these cases
             return self.ref_windows[qk].count(), self.cur_windows[qk].count()
         elif spike_check_type == 'avg':
@@ -714,7 +714,7 @@ class NewTermsRule(RuleType):
                 # Iterate on each part of the composite key and add a sub aggs clause to the elastic search query
                 for i, sub_field in enumerate(field):
                     if self.rules.get('use_keyword_postfix', True):
-                        level['values']['terms']['field'] = add_raw_postfix(sub_field, self.is_five_or_above())
+                        level['values']['terms']['field'] = add_raw_postfix(sub_field, True)
                     else:
                         level['values']['terms']['field'] = sub_field
                     if i < len(field) - 1:
@@ -725,7 +725,7 @@ class NewTermsRule(RuleType):
                 self.seen_values.setdefault(field, [])
                 # For non-composite keys, only a single agg is needed
                 if self.rules.get('use_keyword_postfix', True):
-                    field_name['field'] = add_raw_postfix(field, self.is_five_or_above())
+                    field_name['field'] = add_raw_postfix(field, True)
                 else:
                     field_name['field'] = field
 
@@ -917,15 +917,6 @@ class NewTermsRule(RuleType):
                         self.add_match(match)
                         self.seen_values[field].append(bucket['key'])
 
-    def is_five_or_above(self):
-        esinfo = self.es.info()['version']
-        if esinfo.get('distribution') == "opensearch":
-            # OpenSearch is based on Elasticsearch 7.10.2, currently only v1.0.0 exists
-            # https://opensearch.org/
-            return True
-        else:
-            return int(esinfo['number'][0]) >= 5
-
 
 class CardinalityRule(RuleType):
     """ A rule that matches if cardinality of a field is above or below a threshold within a timeframe """
@@ -1106,10 +1097,13 @@ class MetricAggregationRule(BaseAggregationRule):
                 metric_val = aggregation_data[self.metric_key]['value']
             if self.crossed_thresholds(metric_val):
                 match = {self.rules['timestamp_field']: timestamp,
-                         self.metric_key: metric_val}
+                         self.metric_key: metric_val,
+                         'metric_agg_value': metric_val
+                         }
                 metric_format_string = self.rules.get('metric_format_string', None)
                 if metric_format_string is not None:
                     match[self.metric_key +'_formatted'] = format_string(metric_format_string, metric_val)
+                    match['metric_agg_value_formatted'] = format_string(metric_format_string, metric_val)
                 if query_key is not None:
                     match = expand_string_into_dict(match, self.rules['query_key'], query_key)
                 self.add_match(match)
