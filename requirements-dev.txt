@@ -11,3 +11,4 @@ setuptools
 sphinx==5.1.1
 sphinx_rtd_theme
 tox==3.26.0
+mistune>=2.0.3 # not directly required, pinned by Snyk to avoid a vulnerability
