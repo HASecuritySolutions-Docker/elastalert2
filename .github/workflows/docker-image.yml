@@ -8,7 +8,7 @@ on:
       - 'master'
       - 'dev'
     tags:
-      - '*'
+      - 'v*'
   pull_request:
     branches:
       - 'main'
