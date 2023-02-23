@@ -26,9 +26,9 @@ RUN apt update && apt -y upgrade && \
     apt -y remove gcc libffi-dev && \
     apt -y autoremove && \
     mkdir -p /opt/elastalert && \
-    echo "#!/bin/sh" >> /opt/elastalert/run.sh && \
-    echo "set -e" >> /opt/elastalert/run.sh && \
-    echo "elastalert-create-index --config /opt/elastalert/config.yaml" \
+    echo '#!/bin/sh' >> /opt/elastalert/run.sh && \
+    echo 'set -e' >> /opt/elastalert/run.sh && \
+    echo 'elastalert-create-index --config /opt/elastalert/config.yaml' \
         >> /opt/elastalert/run.sh && \
     echo "elastalert --config /opt/elastalert/config.yaml \"\$@\"" \
         >> /opt/elastalert/run.sh && \
