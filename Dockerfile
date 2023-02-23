@@ -1,4 +1,5 @@
-FROM python:3-slim-buster as builder
+FROM --platform=$BUILDPLATFORM python:3-slim-buster as builder
+ARG TARGETPLATFORM
 
 LABEL description="ElastAlert 2 Official Image"
 LABEL maintainer="Jason Ertel"
@@ -10,7 +11,8 @@ RUN mkdir -p /opt/elastalert && \
     pip install setuptools wheel && \
     python setup.py sdist bdist_wheel
 
-FROM python:3-slim-buster
+FROM --platform=$BUILDPLATFORM python:3-slim-buster
+ARG TARGETPLATFORM
 
 ARG GID=1000
 ARG UID=1000
