@@ -1,3 +1,3 @@
 #!/bin/bash
-elastalert-create-index --config /opt/elastalert/config.yaml
-elastalert --config /opt/elastalert/config.yaml
+/usr/local/bin/elastalert-create-index --config /opt/elastalert/config.yaml
+/usr/local/bin/elastalert --config /opt/elastalert/config.yaml
