@@ -1,8 +1,4 @@
-FROM --platform=$BUILDPLATFORM python:3.11.2-slim as builder
-ARG TARGETPLATFORM
-
-LABEL description="ElastAlert 2 Official Image"
-LABEL maintainer="Jason Ertel"
+FROM python:3.11.2-slim
 
 COPY . /tmp/elastalert
 
