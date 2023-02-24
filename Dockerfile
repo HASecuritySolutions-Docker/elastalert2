@@ -19,6 +19,7 @@ ARG UID=1000
 ARG USERNAME=elastalert
 
 COPY --from=builder /tmp/elastalert/dist/*.tar.gz /tmp/
+COPY --from=builder entrpoint.sh /opt/elastalert/entrypoint.sh
 
 RUN apt update && apt -y upgrade && \
     apt -y install jq curl gcc libffi-dev && \
@@ -28,19 +29,12 @@ RUN apt update && apt -y upgrade && \
     apt -y remove gcc libffi-dev && \
     apt -y autoremove && \
     mkdir -p /opt/elastalert && \
-    echo '#!/bin/sh' >> /opt/elastalert/run.sh && \
-    echo 'set -e' >> /opt/elastalert/run.sh && \
-    echo 'elastalert-create-index --config /opt/elastalert/config.yaml' \
-        >> /opt/elastalert/run.sh && \
-    echo "elastalert --config /opt/elastalert/config.yaml \"\$@\"" \
-        >> /opt/elastalert/run.sh && \
-    chmod +x /opt/elastalert/run.sh && \
-    groupadd -g ${GID} ${USERNAME} && \
-    useradd -u ${UID} -g ${GID} -M -b /opt -s /sbin/nologin \
-        -c "ElastAlert 2 User" ${USERNAME}
+    chmod +x /opt/elastalert/entrypoint.sh && \
+    useradd elastalert && \
+    chown elastalert:elastalert /opt/elastalert
 
-USER ${USERNAME}
+USER elastalert
 ENV TZ "UTC"
 
 WORKDIR /opt/elastalert
-ENTRYPOINT ["/opt/elastalert/run.sh"]
+ENTRYPOINT ["/opt/elastalert/entrypoint.sh"]
