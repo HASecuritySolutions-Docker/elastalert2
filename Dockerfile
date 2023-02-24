@@ -14,7 +14,6 @@ RUN mkdir -p /opt/elastalert && \
     apt -y remove gcc libffi-dev && \
     apt -y autoremove && \
     mkdir -p /opt/elastalert && \
-    cp /tmp/elastalert/entrypoint.sh /opt/elastalert && \
     chmod +x /opt/elastalert/entrypoint.sh && \
     useradd elastalert && \
     chown elastalert:elastalert /opt/elastalert && \
@@ -25,4 +24,4 @@ USER elastalert
 ENV TZ "UTC"
 
 WORKDIR /opt/elastalert
-ENTRYPOINT ["/opt/elastalert/entrypoint.sh"]
+CMD /usr/local/bin/elastalert-create-index --config /opt/elastalert/config.yaml && /usr/local/bin/elastalert --config /opt/elastalert/config.yaml
