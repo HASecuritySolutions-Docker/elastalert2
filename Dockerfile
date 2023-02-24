@@ -23,7 +23,7 @@ RUN mkdir -p /opt/elastalert && \
     useradd elastalert && \
     chown elastalert:elastalert /opt/elastalert && \
     cd /opt/elastalert && \
-    rm -rf /tmp/* && \
+    rm -rf /tmp/*
 
 USER elastalert
 ENV TZ "UTC"
