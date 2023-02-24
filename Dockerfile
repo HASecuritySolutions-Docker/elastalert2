@@ -19,7 +19,7 @@ ARG UID=1000
 ARG USERNAME=elastalert
 
 COPY --from=builder /tmp/elastalert/dist/*.tar.gz /tmp/
-COPY --from=builder entrpoint.sh /opt/elastalert/entrypoint.sh
+COPY --from=builder entrypoint.sh /opt/elastalert/entrypoint.sh
 
 RUN apt update && apt -y upgrade && \
     apt -y install jq curl gcc libffi-dev && \
