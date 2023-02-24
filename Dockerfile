@@ -2,7 +2,11 @@ FROM python:3.11.2-slim
 
 COPY . /tmp/elastalert
 
-RUN mkdir -p /opt/elastalert && \
+RUN apt update && \
+    apt install git -y && \
+    git clone https://github.com/HASecuritySolutions-Docker/elastalert2.git && \
+    mv elastalert2 /tmp/elastalert && \
+    mkdir -p /opt/elastalert && \
     cd /tmp/elastalert && \
     pip install setuptools wheel && \
     python setup.py sdist bdist_wheel && \
@@ -14,7 +18,6 @@ RUN mkdir -p /opt/elastalert && \
     apt -y remove gcc libffi-dev && \
     apt -y autoremove && \
     mkdir -p /opt/elastalert && \
-    chmod +x /opt/elastalert/entrypoint.sh && \
     useradd elastalert && \
     chown elastalert:elastalert /opt/elastalert && \
     cd /opt/elastalert && \
