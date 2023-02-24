@@ -15,14 +15,15 @@ RUN mkdir -p /opt/elastalert && \
     apt -y install jq curl gcc libffi-dev && \
     rm -rf /var/lib/apt/lists/* && \
     pip install /tmp/*.tar.gz && \
-    rm -rf /tmp/* && \
     apt -y remove gcc libffi-dev && \
     apt -y autoremove && \
     mkdir -p /opt/elastalert && \
     cp /tmp/elastalert/entrypoint.sh /opt/elastalert && \
     chmod +x /opt/elastalert/entrypoint.sh && \
     useradd elastalert && \
-    chown elastalert:elastalert /opt/elastalert
+    chown elastalert:elastalert /opt/elastalert && \
+    cd /opt/elastalert && \
+    rm -rf /tmp/* && \
 
 USER elastalert
 ENV TZ "UTC"
