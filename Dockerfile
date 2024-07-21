@@ -1,4 +1,4 @@
-FROM python:3.11.3-slim
+FROM python:3.13.0b3-slim
 
 COPY . /tmp/elastalert
 
